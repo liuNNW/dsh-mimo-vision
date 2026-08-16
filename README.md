@@ -12,11 +12,17 @@
 - 🛡️ **原生回退**：插件未启用 / 自动识别开关关闭 / 未配置密钥 / MiMo 调用失败时，一律回退 DSH 原生流程，保留"当前模型不支持图片"提示，绝不静默吞图
 - 🔐 **密钥安全**：API Key 存储在部署凭据（`MIMO_VISION_CONFIG`），不落配置文件、不进代码仓库
 
+## 📥 获取源码
+
+```bash
+git clone https://gitee.com/liiikk/dsh-mimo-vision.git
+```
+
 ## 🚀 安装
 
 ### 本机
 
-包目录整体拷到 dsh 安装目录的包目录下（与内置包同目录）：
+把仓库里的 `@deepseek-ai/dsh-mimo-vision/` 目录整体拷到 dsh 安装目录的包目录下（与内置包同目录）：
 
 ```
 <dsh安装目录>\node_modules\@deepseek-ai\dsh\node_modules\@deepseek-ai\dsh-mimo-vision\
