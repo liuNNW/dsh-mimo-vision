@@ -2,7 +2,8 @@
  * MiMo 视觉识别 — 全局插件（浏览器端）
  *
  * 浏览器模块格式（window.__ModuleLoader__.load），与内置客户端包一致。
- * 宿主端 Remote 服务 mimoVision 经 ctx.remote.mimoVision 调用。
+ * 宿主端 Remote 服务 mimoVision 经内置 connection.rpc 通道直连（/api/mimoVision/*），
+ * 不依赖 remote.mimoVision 命名空间（rc.6 客户端仅挂载编译期生成的 Remote 清单）。
  * 设置卡片注册在 settings.plugin.item 槽，id `mimo-vision`，样式复刻内置“网页搜索”卡片。
  * 发送时仅在 插件存活 + 开启自动识别 + 已配置密钥 时才拦截图片并交给宿主，
  * 其余情况一律回退原生流程（保留“当前模型不支持图片”提示）。
@@ -16,7 +17,7 @@ window.__ModuleLoader__.load({
     const react = require('react');
     const { createElement: h, useState, useEffect } = react;
 
-    const inject = ['slots', 'timer', 'remote', 'remote.mimoVision'];
+    const inject = ['slots', 'timer', 'connection'];
 
     // ---- 样式：与内置包一致的注入方式（<style data-plugin-css>） ----
     const css = '.mc-card { border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-3); border-radius: 12px; list-style: none; transition: border-color .16s, background .16s; }\n.mc-card:hover { border-color: var(--dsw-alias-label-dimmed); }\n.mc-cardOpen { background: var(--dsw-alias-bg-layer-2); border-color: var(--dsw-alias-label-dimmed); }\n.mc-header { appearance: none; width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; background: 0 0; border: 0; border-radius: 12px; align-items: center; gap: 12px; padding: 14px 16px; display: flex; }\n.mc-header:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: -2px; }\n.mc-headText { flex-direction: column; flex: 1; gap: 4px; min-width: 0; display: flex; }\n.mc-name { color: var(--dsw-alias-label-primary); font-size: 15px; font-weight: 600; line-height: 1.4; }\n.mc-desc { color: var(--dsw-alias-label-tertiary); font-size: 13px; line-height: 1.5; }\n.mc-chevron { color: var(--dsw-alias-label-tertiary); flex: none; transition: transform .16s; }\n.mc-chevronOpen { transform: rotate(180deg); }\n.mc-body { border-top: 1px solid var(--dsw-alias-border-l2); margin: 0 16px; padding-bottom: 8px; }\n.mc-pending { white-space: nowrap; background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-secondary); border-radius: 999px; flex: none; padding: 1px 8px; font-size: 11px; font-weight: 500; line-height: 17px; }\n.mc-field { flex-direction: column; gap: 6px; padding: 12px 0; display: flex; }\n.mc-field + .mc-field { border-top: 1px solid var(--dsw-alias-border-l2); }\n.mc-head { align-items: center; gap: 8px; display: flex; }\n.mc-label { min-width: 0; color: var(--dsw-alias-label-primary); flex: 1; font-size: 13px; font-weight: 500; line-height: 1.5; }\n.mc-badges { align-items: center; gap: 8px; display: inline-flex; }\n.mc-badge { white-space: nowrap; background: var(--dsw-alias-bg-module-platform); color: var(--dsw-alias-label-secondary); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 500; line-height: 17px; }\n.mc-badgeMuted { white-space: nowrap; color: var(--dsw-alias-label-tertiary); border-radius: 999px; padding: 1px 8px; font-size: 11px; line-height: 17px; }\n.mc-reset { font: inherit; color: var(--dsw-alias-label-secondary); cursor: pointer; background: 0 0; border: none; padding: 0; font-size: 12px; line-height: 1.5; }\n.mc-reset:hover:not(:disabled) { color: var(--dsw-alias-label-primary); }\n.mc-reset:disabled { cursor: default; }\n.mc-input { border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-3); height: 34px; font: inherit; color: var(--dsw-alias-label-primary); border-radius: 8px; padding: 0 12px; font-size: 13px; line-height: 1.5; box-sizing: border-box; width: 100%; }\n.mc-input:focus-visible { border-color: var(--dsw-alias-brand-primary); outline: none; }\n.mc-input:disabled { color: var(--dsw-alias-label-tertiary); cursor: default; }\n.mc-inputInvalid { border-color: var(--dsw-alias-label-error); }\n.mc-area { height: auto; min-height: 64px; padding: 8px 12px; resize: vertical; font-family: inherit; }\n.mc-invalid { color: var(--dsw-alias-label-error); margin: 0; font-size: 12px; line-height: 1.5; }\n.mc-hint { color: var(--dsw-alias-label-tertiary); margin: 0; font-size: 12px; line-height: 1.5; }\n.mc-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--dsw-alias-label-primary); cursor: pointer; line-height: 1.5; }\n.mc-check input { margin-top: 2px; accent-color: var(--dsw-alias-brand-primary); }\n.mc-footer { border-top: 1px solid var(--dsw-alias-border-l2); justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 0 4px; display: flex; }\n.mc-note { min-width: 0; flex: 1; margin: 0; font-size: 12px; line-height: 1.5; }\n.mc-noteError { color: var(--dsw-alias-label-error); }\n.mc-noteOk { color: var(--dsw-alias-label-primary); }\n.mc-test, .mc-discard, .mc-save { appearance: none; font: inherit; cursor: pointer; border: 1px solid transparent; border-radius: 8px; padding: 5px 14px; font-size: 13px; line-height: 1.5; }\n.mc-test, .mc-discard { border-color: var(--dsw-alias-border-l2); color: var(--dsw-alias-label-secondary); background: 0 0; }\n.mc-test:hover:not(:disabled), .mc-discard:hover:not(:disabled) { color: var(--dsw-alias-label-primary); border-color: var(--dsw-alias-label-dimmed); }\n.mc-save { background: var(--dsw-alias-label-primary); color: var(--dsw-alias-bg-layer-3); }\n.mc-test:disabled, .mc-discard:disabled, .mc-save:disabled { opacity: .4; cursor: default; }\n.mc-test:focus-visible, .mc-discard:focus-visible, .mc-save:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }';
@@ -50,15 +51,44 @@ window.__ModuleLoader__.load({
       });
     }
 
+    // ---- 宿主 RPC 直连：经内置 connection 通道调用宿主 gateway 的 /api/mimoVision/* 端点。
+    //      rc.6 的客户端 remote.<namespace> 只挂载编译期生成的 Remote 清单（dsh-api-remotes），
+    //      运行时注册的 TypertRemoteService 仅宿主端 SRC 回退支持，客户端没有对应命名空间，
+    //      因此直接走底层 RPC 通道（ui-cordis / pluginInventory 同用此通道）。
+    //      宿主端 gateway：payload 必须恰好含一个 plain-object 字段 args；
+    //      无参方法发 {args:{}}，单参方法发 {args:{args:<值>}}（wire 名 = 方法参数名）。
+    //      返回 {ok:true, value} 或 {ok:false, error:{message}}；这里解包为与旧 host.call 一致的形状。 ----
+    function makeRpc(ctx) {
+      const conn = ctx.connection;
+      const call = async (method, arg) => {
+        const payload = arg === undefined ? { args: {} } : { args: { args: arg } };
+        let outcome;
+        try {
+          outcome = await conn.rpc.call('/api', 'mimoVision/' + method, payload);
+        } catch (err) {
+          return { ok: false, error: String((err && err.message) || err) };
+        }
+        if (outcome && outcome.ok) return outcome.value;
+        const e = (outcome && outcome.error) || {};
+        return { ok: false, error: String((e && e.message) || JSON.stringify(e) || 'MiMo RPC 失败') };
+      };
+      return {
+        configGet: () => call('configGet'),
+        configSet: (config) => call('configSet', { config }),
+        test: () => call('test'),
+        prepare: (p) => call('prepare', p),
+        analyzeData: (p) => call('analyzeData', p),
+      };
+    }
+
     // ---- 发送时拦截：仅在插件存活 + 开启自动识别 + 已配置密钥时才把图片交给宿主（mimoVision.prepare），
     //      消息本体只发送用户文本，宿主在 agent/pre-step 用 MiMo 识别结果注入上下文，agent 正常回复。
     //      其余任何情况（插件已停用、未开启、未配置、MiMo 不可用）一律回退原生流程，
     //      保留 DSH 原有的“当前模型不支持图片”提示。 ----
     let installed = false;
-    function installWrap(ctx, service) {
+    function installWrap(ctx, service, rpc) {
       if (installed || !service || typeof service.sendSession !== 'function') return;
       installed = true;
-      const rpc = ctx.remote.mimoVision;
       const original = service.sendSession;
       const wrapped = async function (session, text, imageIds, mode) {
         const ids = Array.isArray(imageIds) ? imageIds : [];
@@ -399,22 +429,23 @@ window.__ModuleLoader__.load({
     }
 
     function apply(ctx) {
+      const rpc = makeRpc(ctx);
       // 发送拦截（conversation 服务可能晚于本插件激活，用 timer 轮询兜底）
       const convNow = ctx.get('conversation');
       if (convNow) {
-        installWrap(ctx, convNow);
+        installWrap(ctx, convNow, rpc);
       } else {
         let dispose = null;
         dispose = ctx.timer.interval(() => {
           const s = ctx.get('conversation');
-          if (s) { installWrap(ctx, s); if (dispose) dispose(); }
+          if (s) { installWrap(ctx, s, rpc); if (dispose) dispose(); }
         }, 300);
       }
 
       // 设置页卡片：settings.plugin.item 槽，样式与内置“网页搜索”一致
       ctx.slots.inject('settings.plugin.item', () => ctx.slots.register(
         { name: 'settings.plugin.item', id: 'mimo-vision', order: 25, label: 'MiMo 视觉' },
-        () => react.createElement(MimoSettings, { rpc: ctx.remote.mimoVision })
+        () => react.createElement(MimoSettings, { rpc })
       ));
     }
 

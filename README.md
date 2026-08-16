@@ -92,7 +92,7 @@ agent 在对话中直接调用 `mimo_analyze_image` 工具分析图片：
 ```
 
 - **宿主端**：`TypertRemoteService` 子类注册 Remote 服务 `mimoVision`（`configGet` / `configSet` / `test` / `prepare` / `analyzeData`），注册全局工具，监听 `agent/pre-step` 注入上下文；图片经真实 Node 子进程（`subprocess` 服务 + 内嵌脚本）Base64 编码后请求 MiMo API
-- **浏览器端**：`settings.plugin.item` 槽注册配置卡片；发送拦截仅在 插件存活 + 开启 + 已配置 时生效，其余情况回退原生
+- **浏览器端**：`settings.plugin.item` 槽注册配置卡片；经内置 connection RPC 通道（`/api/mimoVision/*`）直连宿主 Remote；发送拦截仅在 插件存活 + 开启 + 已配置 时生效，其余情况回退原生
 
 ## 📦 目录结构
 
@@ -106,6 +106,7 @@ agent 在对话中直接调用 `mimo_analyze_image` 工具分析图片：
 
 ## 📌 版本历史
 
+- **0.1.1** — 修复客户端挂载失败：rc.6 客户端仅挂载编译期生成的 Remote 清单（`dsh-api-remotes`），运行时注册的 `remote.mimoVision` 永远 pending；改为经内置 connection RPC 通道直连宿主 gateway（宿主端 SRC 回退链路，实测标记正确）
 - **0.1.0** — 由动态插件 pkg-14 迁移为全局静态插件（通信层改用 typert Remote，逻辑等价）
 
 ## 📄 许可证
