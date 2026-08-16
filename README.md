@@ -18,31 +18,41 @@
 git clone https://gitee.com/liiikk/dsh-mimo-vision.git
 ```
 
-## 🚀 安装
+## 🚀 一键安装
 
-### 本机
+### 推荐：`node install.mjs`
 
-把仓库里的 `@deepseek-ai/dsh-mimo-vision/` 目录整体拷到 dsh 安装目录的包目录下（与内置包同目录）：
-
-```
-<dsh安装目录>\node_modules\@deepseek-ai\dsh\node_modules\@deepseek-ai\dsh-mimo-vision\
-```
-
-在 profile 补丁文件 `%USERPROFILE%\.dsh\profiles\web\cordis.patch.yml` 中追加：
-
-```yaml
-- insert:
-    - id: mimo-vision
-      name: '@deepseek-ai/dsh-mimo-vision'
+```bash
+git clone https://gitee.com/liiikk/dsh-mimo-vision.git
+cd dsh-mimo-vision
+node install.mjs
 ```
 
-重启 dsh 服务并刷新页面，即完成安装。
+脚本自动完成三步：**定位 dsh 安装目录 → 拷贝插件包 → 写入组合补丁**（幂等，重复执行安全，已有旧版自动覆盖）。装完后重启 dsh 服务、刷新页面，到配置卡片填 API Key 即可。
+
+> 为什么不是 `npm install`？DSH 插件的加载需要"包文件 + 组合注册行"两件事，而组合注册行（`cordis.patch.yml`）不在 npm 的管理范围内，所以用脚本把两步合并为一条命令。
+
+### 手动安装（备选）
+
+1. 把仓库里的 `@deepseek-ai/dsh-mimo-vision/` 目录整体拷到 dsh 安装目录的包目录下（与内置包同目录）：
+
+   ```
+   <dsh安装目录>\node_modules\@deepseek-ai\dsh\node_modules\@deepseek-ai\dsh-mimo-vision\
+   ```
+
+2. 在 profile 补丁文件 `%USERPROFILE%\.dsh\profiles\web\cordis.patch.yml` 中追加：
+
+   ```yaml
+   - insert:
+       - id: mimo-vision
+         name: '@deepseek-ai/dsh-mimo-vision'
+   ```
+
+3. 重启 dsh 服务并刷新页面。
 
 ### 换一台电脑
 
-1. 拷贝 `@deepseek-ai/dsh-mimo-vision/` 到目标电脑的同一目录
-2. 目标电脑的 `cordis.patch.yml` 追加同样的两行
-3. 重启后到配置卡片里**单独填写一次 API Key**（凭据按机器隔离）
+重复上面的安装步骤即可；重启后到配置卡片里**单独填写一次 API Key**（凭据按机器隔离）。
 
 ## ⚙️ 配置
 
