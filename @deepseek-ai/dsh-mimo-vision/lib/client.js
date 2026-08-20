@@ -90,7 +90,7 @@ window.__ModuleLoader__.load({
       if (installed || !service || typeof service.sendSession !== 'function') return;
       installed = true;
       const original = service.sendSession;
-      const wrapped = async function (session, text, imageIds, mode) {
+      const wrapped = async function (session, text, imageIds, mode, signal) {
         const ids = Array.isArray(imageIds) ? imageIds : [];
         if (ids.length > 0) {
           try {
@@ -108,9 +108,9 @@ window.__ModuleLoader__.load({
               const prep = await rpc.prepare({ sessionId: sessionId, dataUrls: dataUrls, prompt: sendText });
               if (!prep || !prep.ok) {
                 try { this.releaseDraftImages(attachments); } catch (e) { /* 忽略 */ }
-                return original.call(this, session, text, imageIds, mode);
+                return original.call(this, session, text, imageIds, mode, signal);
               }
-              const result = await original.call(this, session, sendText, [], mode);
+              const result = await original.call(this, session, sendText, [], mode, signal);
               try { this.releaseDraftImages(attachments); } catch (e) { /* 尽力释放预览资源 */ }
               return result;
             }
@@ -118,7 +118,7 @@ window.__ModuleLoader__.load({
             // 插件已停用或配置服务不可达 → 走原生流程，保留原生提示
           }
         }
-        return original.call(this, session, text, imageIds, mode);
+        return original.call(this, session, text, imageIds, mode, signal);
       };
       service.sendSession = wrapped;
       ctx.effect(() => () => {
