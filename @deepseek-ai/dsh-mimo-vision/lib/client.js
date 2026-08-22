@@ -444,7 +444,7 @@ window.__ModuleLoader__.load({
 
       // 设置页卡片：settings.plugin.item 槽，样式与内置“网页搜索”一致
       ctx.slots.inject('settings.plugin.item', () => ctx.slots.register(
-        { name: 'settings.plugin.item', id: 'mimo-vision', order: 25, label: 'MiMo 视觉' },
+        { name: 'settings.plugin.item', key: 'mimo-vision', id: 'mimo-vision', order: 25, label: 'MiMo 视觉' },
         () => react.createElement(MimoSettings, { rpc })
       ));
     }
