@@ -351,7 +351,15 @@ let MimoVision = (() => {
         if (resolved && resolved.value) {
           const parsed = JSON.parse(resolved.value);
           if (parsed && typeof parsed === 'object') {
-            this.config = { ...DEFAULT_CONFIG, ...parsed };
+            // 清理历史嵌套 config 字段：如果存在内层 config（旧版 persistConfig 嵌套 bug 遗留），
+            // 以内层为准并展平，避免外层过期 key 误用。
+            const flat = parsed.config && typeof parsed.config === 'object'
+              ? { ...DEFAULT_CONFIG, ...parsed.config }
+              : { ...DEFAULT_CONFIG, ...parsed };
+            delete flat.config;
+            this.config = flat;
+            // 自动回写清理后的干净配置（幂等，消除嵌套）
+            await this.ctx.credentials.set(CRED_REF, JSON.stringify(flat)).catch(() => {});
           }
         }
       } catch (err) {
@@ -360,7 +368,9 @@ let MimoVision = (() => {
     }
 
     async persistConfig(next) {
-      const merged = { ...DEFAULT_CONFIG, ...this.config, ...next };
+      // 展平：丢弃 this.config 里可能残留的嵌套 config 字段，防止嵌套永续
+      const { config: _discard, ...flatCurrent } = this.config;
+      const merged = { ...DEFAULT_CONFIG, ...flatCurrent, ...next };
       if (typeof merged.apiKey !== 'string' || !merged.apiKey.trim()) {
         throw new Error('API Key 不能为空（sk- 开头为按量付费，tp- 开头为 Token 套餐）');
       }
@@ -379,6 +389,8 @@ let MimoVision = (() => {
       merged.defaultPrompt = typeof merged.defaultPrompt === 'string' ? merged.defaultPrompt : '';
       merged.systemPrompt = typeof merged.systemPrompt === 'string' ? merged.systemPrompt : '';
       merged.autoConvertImages = merged.autoConvertImages !== false;
+      // 防御：确保永远不写入嵌套的 config 字段
+      delete merged.config;
       this.config = merged;
       await this.ctx.credentials.set(CRED_REF, JSON.stringify(merged));
       return merged;
