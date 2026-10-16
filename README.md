@@ -1,7 +1,7 @@
 # MiMo 视觉识别（DSH 插件）
 
 [![npm](https://img.shields.io/npm/v/dsh-mimo-vision.svg)](https://www.npmjs.com/package/dsh-mimo-vision)
-[![license](https://img.shields.io/npm/l/dsh-mimo-vision.svg)](https://github.com/liuNNW/dsh-mimo-vision/blob/main/LICENSE)
+[![license](https://img.shields.io/badge/license-MulanPSL--2.0-blue.svg)](https://github.com/liuNNW/dsh-mimo-vision/blob/main/LICENSE)
 [![topic](https://img.shields.io/badge/topic-dsh--plugin-blue.svg)](https://github.com/topics/dsh-plugin)
 
 让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）具备**图片识别能力**：对接小米 [MiMo](https://platform.xiaomimimo.com) 模型，发送带图片的消息时自动调用 MiMo 识别，结果作为上下文注入对话 —— 主模型即使不支持图片输入，也能围绕图片内容正常回复。
@@ -173,4 +173,4 @@ mimo-vision-plugin/
 
 ## 📄 许可证
 
-MIT
+[MulanPSL-2.0](LICENSE)（木兰宽松许可证，第 2 版）—— 与仓库内 `LICENSE` 文件一致。

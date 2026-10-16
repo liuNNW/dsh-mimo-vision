@@ -25,7 +25,7 @@
  *   node "<仓库>/mimo-vision-plugin/scripts/integration.mjs"
  */
 import path from 'node:path'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -1103,6 +1103,17 @@ async function testPackageIdentity() {
     fail('包名占用官方 scope', 'npm publish 会被 403 拒绝，且会与官方包冲突')
   } else {
     ok('没有占用官方 @deepseek-ai scope')
+  }
+  // LICENSE 文件与 package.json 的 license 字段必须一致（npm 页按后者显示）。
+  const licensePath = path.join(PKG_ROOT, 'LICENSE')
+  if (existsSync(licensePath)) {
+    const licenseText = readFileSync(licensePath, 'utf8')
+    const isMulan = /MulanPSL/i.test(licenseText) || licenseText.includes('木兰')
+    const declaredMulan = /MulanPSL/i.test(manifest.license ?? '')
+    if (isMulan === declaredMulan) ok(`LICENSE 与 package.json 一致（${manifest.license}）`)
+    else fail('许可证不一致', `LICENSE 文件是${isMulan ? ' MulanPSL-2.0' : '非 MulanPSL'}，package.json 写的是 ${manifest.license}`)
+  } else {
+    fail('LICENSE', '缺少 LICENSE 文件')
   }
 }
 
