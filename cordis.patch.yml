@@ -1,0 +1,27 @@
+# dsh-mimo-vision —— bundle 补丁层
+#
+# 由 `dsh plugin --profile <name> add <本包>` 自动装配（包声明 dsh.bundle.patch），
+# `dsh plugin remove` 时自动移除；也可手工把下面这条 insert 合并进 profile 的
+# cordis.patch.yml。
+#
+# `name` 是 npm 包名，必须与 package.json 的 name 一致。
+#
+# 关键约束：row id 必须保持 `mimo-vision`（与包名解耦，别跟着改名）。
+#   * 它是 @deepseek-ai/dsh-settings 的「设置命名空间」，设置页表单按这个 id 读写；
+#   * 它也是 config-editor 定位 profile 条目、把表单值写回本文件 config 段的 id。
+# 改名会导致设置页找不到命名空间（插件照常加载，但页面显示「未加载」）。
+#
+# config 段里出现的值就是设置页保存下来的用户层；删除某个键即回落到 schema 默认值。
+# 密钥不存在这里：apiKeyEnv 只声明凭据引用名，真正的密钥写在 <DSH_HOME>/.credentials.yaml。
+- insert:
+    - id: mimo-vision
+      name: 'dsh-mimo-vision'
+      config:
+        apiKeyEnv: 'MIMO_VISION_API_KEY'
+        baseUrl: 'https://api.xiaomimimo.com/v1'
+        model: 'mimo-v2.5-pro'
+        maxTokens: 2048
+        temperature: 0.3
+        defaultPrompt: '请详细描述这张图片的内容，包括主体、场景、细节、文字信息等。'
+        systemPrompt: ''
+        autoConvertImages: true

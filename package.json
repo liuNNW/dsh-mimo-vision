@@ -1,0 +1,64 @@
+{
+  "name": "dsh-mimo-vision",
+  "version": "0.2.2",
+  "description": "MiMo 视觉识别：对接小米 MiMo 模型，让 DSH 具备图片识别能力。宿主插件带原生设置页（模型名称 / 模型密钥 / 默认提示词），发送带图消息时自动识别并注入上下文；未配置或停用时回退原生流程。",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liuNNW/dsh-mimo-vision.git"
+  },
+  "homepage": "https://github.com/liuNNW/dsh-mimo-vision#readme",
+  "bugs": {
+    "url": "https://github.com/liuNNW/dsh-mimo-vision/issues"
+  },
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "scripts",
+    "install.mjs",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "scripts": {
+    "smoke": "node scripts/smoke.mjs",
+    "check": "node scripts/schema-check.mjs",
+    "integration": "node scripts/integration.mjs",
+    "verify": "node scripts/verify-profile.mjs",
+    "test": "node scripts/schema-check.mjs && node scripts/smoke.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "mimo",
+    "vision",
+    "image",
+    "multimodal"
+  ],
+  "license": "MIT",
+  "dshTarget": "0.2.0-rc.2",
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
+  }
+}
