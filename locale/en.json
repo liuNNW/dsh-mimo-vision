@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MiMo Vision",
+    "description": "Image understanding through Xiaomi MiMo: images in an outgoing message are described automatically and injected into the conversation context, with model, key and default prompt configurable on the settings page."
+  }
+}

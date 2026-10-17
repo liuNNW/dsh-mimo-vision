@@ -1,5 +1,4 @@
 # 开发期依赖链接（junction / symlink 指向内核包），不入库。
-# 复现方式见 README「🧪 测试」一节。
 node_modules/
 
 # 编辑器 / 系统

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MiMo 视觉识别",
+    "description": "对接小米 MiMo 模型，让 DeepSeek Harness 具备图片识别能力：发送带图消息时自动识别并注入上下文，设置页可改模型、密钥与默认提示词。"
+  }
+}

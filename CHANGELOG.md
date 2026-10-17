@@ -1,5 +1,52 @@
 # 变更记录
 
+## 0.3.0
+
+**改成可安装的 bundle 插件**（与 `dsh-better-sidebar` 同一种形态），并修掉内核升级到 0.2.x 后整页失效的问题。
+
+### 破坏性变更
+
+- **不再是「系统插件」**：删掉 `install.mjs`，安装统一走官方命令
+  `dsh plugin --profile <profile> add dsh-mimo-vision`。包自带 `dsh.bundle.patch`，
+  安装时自动把 `dsh-mimo-vision` 追加进 `dsh.profile.bundles`，无需手工改 profile。
+- **profile `cordis.patch.yml` 里旧的手工 `- id: mimo-vision` 行必须删掉**，否则
+  同一个插件会被挂载两次（重复的 HTTP 前缀路由会让整棵插件树启动失败）。
+- **配置不再写进 profile 的 `cordis.patch.yml`**，改存
+  `<DSH_HOME>/.dsh-mimo-vision.json`（密钥仍只写 `.credentials.yaml`）。
+  这样插件配置与内核 profile 解耦，内核升级不再牵动插件状态。
+
+### 修复（内核 0.2.x 兼容性）
+
+这些是「更新版本后不兼容」的直接原因，逐条对照运行中的内核核实后修掉：
+
+- **`ctx.configForms` 已不存在**（在 0.2.1-rc.2 的内核里零命中）：旧版设置页靠它
+  读写表单，因此整页空白。改为插件自己的同源 HTTP 面 `/mimo-vision/api/*`
+  （`status` / `fields` / `save` / `test` / `prepare` / `analyze`）。
+- **`plugins.item` 座位已改为 `plugins.bundle.config`**（keyed by 包名）：
+  旧 id 不再被任何宿主渲染，插件页卡片会静默消失。
+- **发送拦截用了已删除的私有方法**：`resolveDraftAttachments()` / `encodeImage()` /
+  `releaseDraftAttachments()` 在 0.2.x 都没有了，这正是「带图消息没反应」的原因。
+  改用公开 API：`serializeDraftImages()` + `sendSession()` + `releaseDraftImage[s]()`。
+- **工具定义不能再用内核 `defineTool()`**：profile 安装形态下
+  `@deepseek-ai/dsh-tools` 会按 Node 目录查找解析到 `~/.dsh/profiles/node_modules`
+  那批 junction，命中的是 npm 全局 dsh 的**旧副本**（0.1.0-rc.8），与桌面版
+  内核（0.2.1-rc.2）形状不同。现在宿主半**零 `@deepseek-ai/*` import**，
+  直接提交 `ctx.tools.register()` 接受的 JSON Schema 形态。
+- **`output.schema` 的属性级 `required: true` 不合法**：内核
+  `assertSupportedJsonSchema` 只认标准 JSON Schema，必填由顶层 `required`
+  数组表达。旧写法会让整个插件在启动时抛 `JsonSchemaError`。
+- **注入消息的来源必须是 `plugin:<包名>`**：session 格式 v4 拒收裸
+  `kind: 'plugin'`，会拒绝重开会话。
+- **`webServer` / `credentials` 改为可选依赖**：走 `ctx.inject([...])`，
+  没有这些服务的 profile 里插件照常激活，而不是把整棵树拖进 pending。
+
+### 新增
+
+- `locale/zh.json` + `locale/en.json`：插件管理页与设置页显示本地化标题/描述。
+- `icon.svg`：插件行图标。
+- 双挂载保护：`cordis.patch.yml` 用 `!!js` 在同一个包被其它聚合 bundle 挂载时
+  自动让位。
+
 ## 0.2.2
 
 **包名改为 `dsh-mimo-vision`**（从 `@deepseek-ai/dsh-mimo-vision`），以便公开发布。

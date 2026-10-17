@@ -22,15 +22,18 @@
 
 ## 📥 安装
 
+本插件是**可安装的 bundle 插件**（与 `dsh-better-sidebar` 同一种形态）：包里自带
+`cordis.patch.yml`，装进 profile 后自动进 `dsh.profile.bundles`，**不需要手工改
+profile 的任何文件**。
+
 ### 方式一：从 npm 安装（推荐）
 
 ```bash
 dsh plugin --profile desktop add dsh-mimo-vision
 ```
 
-`dsh` 会走 pnpm 与兼容性检查，把包装进 profile 的 `node_modules` 并写进 `dsh.profile.bundles`。**装完重启 DSH**。
-
-> 尚未发布到 npm 时，用下面的 GitHub 或本地安装方式。
+`dsh` 会走 pnpm 与兼容性检查，把包装进 profile 的 `node_modules` 并写进
+`dsh.profile.bundles`。**装完重启 DSH**。
 
 ### 方式二：直接从 GitHub 安装
 
@@ -38,31 +41,36 @@ dsh plugin --profile desktop add dsh-mimo-vision
 dsh plugin --profile desktop add github:liuNNW/dsh-mimo-vision
 ```
 
-适合想跟 `main` 最新提交、或 npm 上还没发版的情况。
-
-### 方式三：克隆后本地安装
+### 方式三：本地目录安装
 
 ```bash
 git clone https://github.com/liuNNW/dsh-mimo-vision.git
-cd dsh-mimo-vision
-node install.mjs                      # 自动挑 profile（默认 desktop）
-node install.mjs --profile web        # 指定 profile
+dsh plugin --profile desktop add /绝对路径/dsh-mimo-vision
 ```
 
-脚本会：校验包体 → 选 profile → 安装 → 检查旧版残留。**装完重启 DSH**，然后到 `设置 → MiMo 视觉` 填写三项并保存。
+> **从 0.2.x 升级上来的迁移步骤**（重要）：
+> 1. 删除 profile `cordis.patch.yml` 里旧的手工挂载行：
+>    ```yaml
+>    - id: mimo-vision
+>      name: "dsh-mimo-vision"
+>      config: { ... }
+>    ```
+>    不删的话同一个插件会被挂载两次，重复的 HTTP 前缀路由会让整棵插件树启动失败。
+> 2. 用本版重新安装：`dsh plugin --profile desktop add ...`。
+> 3. 旧配置会自动迁移到 `<DSH_HOME>/.dsh-mimo-vision.json`；密钥仍在
+>    `.credentials.yaml` 的 `MIMO_VISION_API_KEY` 下，不用重填。
 
-### 手动安装
+### 配置在哪
 
-1. 把本目录整体拷到 `<DSH_HOME>/profiles/<profile>/node_modules/dsh-mimo-vision/`
-2. 把 `"dsh-mimo-vision"` 加进 `<DSH_HOME>/profiles/<profile>/package.json` 的 `dsh.profile.bundles`
-3. 重启 DSH
+| 内容 | 位置 |
+|---|---|
+| 非密钥配置（模型、接口地址、提示词等） | `<DSH_HOME>/.dsh-mimo-vision.json` |
+| 模型密钥 | `<DSH_HOME>/.credentials.yaml` → `refs.MIMO_VISION_API_KEY` |
+
+配置写进插件自己的文件而不是 profile 的 `cordis.patch.yml`，这样内核升级不会牵动
+插件状态。也可以在**设置 → MiMo 视觉**里改，效果一样。
 
 `<DSH_HOME>` 默认是 `%USERPROFILE%\.dsh`（Windows）/ `~/.dsh`（macOS、Linux）。
-**不需要**改 profile 的 `cordis.patch.yml` —— 组合层由本包自带的 `cordis.patch.yml` 提供。
-
-> 从 0.1.x / 旧 scope 名（`@deepseek-ai/dsh-mimo-vision`）升级上来的用户：包名已改为
-> 无 scope 的 `dsh-mimo-vision`。`dsh.profile.bundles` 里若还留着旧名，改成新名；
-> 设置命名空间（row id `mimo-vision`）没变，所以配置值和密钥都不会丢。
 
 ### 为什么不再「拷进内核目录」
 
@@ -74,9 +82,16 @@ node install.mjs --profile web        # 指定 profile
 
 `install.mjs` 现在会主动检测这类残留并给出清理命令。**已装过 0.1.x 的请先把旧拷贝删掉再装新版**，否则两个版本会同时加载。
 
+> 0.3.0 起 `install.mjs` 已删除，安装统一走 `dsh plugin ... add`。旧残留（内核目录里的
+> `node_modules/@deepseek-ai/dsh-mimo-vision`、或 profile 里手工插的 `- id: mimo-vision`）
+> 仍需手工清掉 —— 它们是**另一份副本**，本插件无法替用户删除。
+
 ## ⚙️ 配置
 
-在 `设置 → MiMo 视觉`（或 `插件 → MiMo 视觉`）里配置，保存即生效、重启仍在。
+在 `设置 → MiMo 视觉` 里配置，保存即生效、重启仍在。同一个表单也出现在
+`设置 → 插件 → dsh-mimo-vision`（bundle 配置区）。
+
+配置写入 `<DSH_HOME>/.dsh-mimo-vision.json`；密钥单独写 `.credentials.yaml`。
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -112,61 +127,68 @@ node install.mjs --profile web        # 指定 profile
 ```
 [浏览器] 发送带图消息
    └─ 拦截 conversation.sendSession（仅当 插件存活 + 开关开 + 已配密钥）
-        ├─ resolveDraftAttachments + encodeImage → 图片字节
+        ├─ conversation.serializeDraftImages(ids) → 图片字节（公开 API）
         ├─ POST ./mimo-vision/api/prepare  → 宿主暂存
-        └─ 以「剔除图片后的附件 id」调用原始 sendSession（纯文本，不触发图片闸门）
+        └─ 以「空图片列表」调用原始 sendSession（纯文本，不触发图片闸门）
 [宿主] agent/pre-step waterfall
         ├─ 逐张调 MiMo（进程内 fetch）
-        └─ 把结果作为 source.kind==='plugin' 的用户消息插到已认领消息之后
-[设置页] 插件 Config(.volatile) → dsh-settings 投影 → SettingsForm；密钥走 credentials 域
+        └─ 把结果作为 source.kind==='plugin:<包名>' 的用户消息插到已认领消息之后
+[设置页] 自建表单 → POST ./mimo-vision/api/{fields,status,save,test} → 宿主
 ```
 
 **为什么必须在客户端剔除图片？** 宿主 `api-session-controller` 在受理 prompt 时就会按当前模型的 `inputModalities` 拒绝带图请求（`session/attachment-invalid` / `MODEL_DOES_NOT_SUPPORT_IMAGES`），这一步发生在**任何插件事件之前**，宿主侧无法事后补救。
 
-**为什么不用 typert Remote？** rc.6+ 的客户端只挂载编译期生成的 Remote 清单，运行时注册的 `TypertRemoteService` 在浏览器侧拿不到命名空间。所以客户端 ↔ 宿主走同源 HTTP（`/mimo-vision/api/*`，与 `dsh-better-sidebar` 的 `/sidebar/api` 同机制），配置读写走官方 `configForms` 与 `credentials` 服务。
+**为什么不用 typert Remote，也不用 `configForms`？** 0.2.x 的客户端只挂载编译期生成的
+Remote 清单，运行时注册的 `TypertRemoteService` 在浏览器侧拿不到命名空间；而
+`ctx.configForms` 在 0.2.1-rc.2 内核里已经**整个不存在**（全量搜索零命中）——旧版设置页
+依赖它，正是升级后整页空白的原因。所以客户端 ↔ 宿主统一走同源 HTTP
+（`/mimo-vision/api/*`，与 `dsh-better-sidebar` 的 `/sidebar/api` 同机制）。
 
-## 🧪 测试
+**为什么宿主半不 import 任何 `@deepseek-ai/*`？** profile 里安装的插件按 Node 的目录
+查找解析这些包名，命中的是 `~/.dsh/profiles/node_modules` 那批 junction —— 它们指向
+**npm 全局 dsh**，和桌面版内核（`app.asar` 里）可能差一个 minor。旧版
+`import { defineTool }` / `import { credentialRef }` 就踩在这条裂缝上。
+现在宿主半零内核 import：工具定义直接提交 `ctx.tools.register()` 接受的 JSON 形态。
 
-四套脚本都不需要启动 DSH、不联网（HTTP 用打桩 fetch）。**cwd 必须在这个 profile 目录里**，才能解析到内核依赖：
+## 🧪 自检
 
-```bash
-cd "$DSH_HOME/profiles/desktop"
-
-node <仓库>/scripts/schema-check.mjs     # Config 与工具参数契约
-node <仓库>/scripts/smoke.mjs            # 宿主 HTTP 面 / 错误映射 / 密钥解析 / 旧配置迁移
-node <仓库>/scripts/integration.mjs      # pre-step 注入 与 客户端发送拦截（含全部回退分支）
-node <仓库>/scripts/verify-profile.mjs   # profile 装配（bundles / 包体解析 / 补丁层 / 兼容性）
-```
-
-也可在本仓库根目录跑 `npm test`（`schema-check` + `smoke`）。
-
-开发期若要在包目录下直接跑，先建内核依赖链接：
+插件装好后可以这样验证（不联网的部分用打桩 fetch）：
 
 ```bash
-mkdir -p node_modules/@deepseek-ai
-for p in schemastery dsh-tools dsh-credentials; do
-  # Windows: mklink /J ；POSIX: ln -s
-  ln -s "<dsh安装目录>/node_modules/@deepseek-ai/$p" "node_modules/@deepseek-ai/$p"
-done
+# 宿主半可独立加载（证明零内核依赖）
+node -e "import('<包目录>/lib/index.js').then(m=>console.log(m.name, m.inject))"
+
+# 浏览器半可独立注册
+node --check <包目录>/lib/client.js
+
+# 装好之后：宿主 HTTP 面
+curl -X POST http://127.0.0.1:19387/mimo-vision/api/status -H 'content-type: application/json' -d '{}'
 ```
 
 ## 📦 目录结构
 
 ```
 mimo-vision-plugin/
-├── package.json           # 包声明：dsh.bundle.patch + dsh.client
-├── cordis.patch.yml       # 组合补丁层（insert row id: mimo-vision）
-├── install.mjs            # 安装脚本（CLI 优先，文件系统兜底，幂等）
-├── lib/
-│   ├── index.js           # 宿主半：HTTP 面 + 全局工具 + pre-step 注入 + 旧配置迁移
-│   ├── client.js          # 浏览器半：设置页双座位 + 发送拦截
-│   ├── config.js          # Config schema 与共享常量
-│   └── mimo.js            # MiMo HTTP 客户端（含错误映射与密钥脱敏）
-└── scripts/               # 四套自检脚本
+├── package.json           # 包声明：dsh.bundle.patch + dsh.client + icon
+├── cordis.patch.yml       # 组合补丁层（insert row id: mimo-vision，含双挂载保护）
+├── icon.svg               # 插件行图标
+├── locale/
+│   ├── zh.json            # 插件页显示的中文标题/描述
+│   └── en.json            # 英文标题/描述
+└── lib/
+    ├── index.js           # 宿主半：HTTP 面 + 全局工具 + pre-step 注入 + 旧配置迁移
+    ├── client.js          # 浏览器半：设置页双座位 + 发送拦截
+    ├── config.js          # 字段表/默认值与共享常量（宿主与浏览器共用）
+    └── mimo.js            # MiMo HTTP 客户端（含错误映射与密钥脱敏）
 ```
 
 ## 📌 版本历史
 
+- **0.3.0** — 改成**可安装的 bundle 插件**（与 `dsh-better-sidebar` 同形态），删除
+  `install.mjs`；修掉内核 0.2.x 升级后的全部不兼容点（`configForms` 消失、
+  `plugins.item`→`plugins.bundle.config`、发送拦截私有方法被删、内核包解析到旧副本、
+  `output.schema` 写法、注入消息 source 格式）。配置改存
+  `<DSH_HOME>/.dsh-mimo-vision.json`，与 profile 解耦。新增 locale 与图标。
 - **0.2.0** — 重构为 **profile 级永久插件**（不再拷进内核目录）。设置页改用官方 `Config(.volatile)` + `dsh-settings` + `configForms` 体系，座位从已不存在的 `settings.plugin.item` 迁到 `settings.section` + `plugins.item`。通信层从 typert Remote / SRC 回退改为同源 HTTP 面。模型名称解锁白名单；密钥改走独立凭据引用（`MIMO_VISION_API_KEY`）。图片改由宿主进程内 `fetch` 直连 MiMo（去掉子进程与 `subprocess`/`sandboxPolicy` 依赖）。新增四套自检脚本与旧配置自动迁移。
 - **0.1.1** — 修复客户端挂载失败（改用 SRC 回退链路）
 - **0.1.0** — 由动态插件迁移为全局静态插件

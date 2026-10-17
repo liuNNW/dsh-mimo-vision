@@ -1,27 +1,22 @@
 # dsh-mimo-vision —— bundle 补丁层
 #
-# 由 `dsh plugin --profile <name> add <本包>` 自动装配（包声明 dsh.bundle.patch），
-# `dsh plugin remove` 时自动移除；也可手工把下面这条 insert 合并进 profile 的
-# cordis.patch.yml。
+# 安装方式（与 dsh-better-sidebar 相同，全部由命令行装配，不需要手工改 profile）：
 #
-# `name` 是 npm 包名，必须与 package.json 的 name 一致。
+#   dsh plugin --profile <profile> add dsh-mimo-vision
 #
-# 关键约束：row id 必须保持 `mimo-vision`（与包名解耦，别跟着改名）。
-#   * 它是 @deepseek-ai/dsh-settings 的「设置命名空间」，设置页表单按这个 id 读写；
-#   * 它也是 config-editor 定位 profile 条目、把表单值写回本文件 config 段的 id。
-# 改名会导致设置页找不到命名空间（插件照常加载，但页面显示「未加载」）。
+# 包在 package.json 里声明了 `dsh.bundle.patch`，安装时 profile 的
+# `dsh.profile.bundles` 会自动追加本包，启动时把下面这条 insert 合并进插件树，
+# 因此不再需要往 profile 的 cordis.patch.yml 里手工插行。
 #
-# config 段里出现的值就是设置页保存下来的用户层；删除某个键即回落到 schema 默认值。
-# 密钥不存在这里：apiKeyEnv 只声明凭据引用名，真正的密钥写在 <DSH_HOME>/.credentials.yaml。
+# ⚠ 迁移注意：如果你的 profile 的 cordis.patch.yml 里还留着旧版手工插入的
+#   `- id: mimo-vision` / `name: "dsh-mimo-vision"`，请把它删掉，否则同一个插件
+#   会被挂载两次（重复的 HTTP 前缀路由会让整棵插件树启动失败）。
+#
+# row id 仍保持 `mimo-vision`：它同时是本插件 HTTP 面与本地设置文件的命名空间，
+# 改名会让已有用户配置失联。
+#
+# 双挂载保护：若同一个包已被别的聚合 bundle 以其它 id 挂载，本条自动让位。
 - insert:
     - id: mimo-vision
       name: 'dsh-mimo-vision'
-      config:
-        apiKeyEnv: 'MIMO_VISION_API_KEY'
-        baseUrl: 'https://api.xiaomimimo.com/v1'
-        model: 'mimo-v2.5-pro'
-        maxTokens: 2048
-        temperature: 0.3
-        defaultPrompt: '请详细描述这张图片的内容，包括主体、场景、细节、文字信息等。'
-        systemPrompt: ''
-        autoConvertImages: true
+      disabled: !!js "[...ctx.loader.entries()].some((e) => e.options.name === 'dsh-mimo-vision' && e.options.id !== 'mimo-vision' && !e.disabled)"
